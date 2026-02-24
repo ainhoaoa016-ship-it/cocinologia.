@@ -1,0 +1,674 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Search, 
+  Camera, 
+  Utensils, 
+  Globe, 
+  Info, 
+  ChevronRight, 
+  Clock, 
+  Flame,
+  ArrowLeft,
+  MapPin,
+  Zap,
+  Heart,
+  ChefHat,
+  Navigation,
+  Compass,
+  Star,
+  BookOpen,
+  Camera as CameraIcon,
+  X,
+  ExternalLink,
+  Coffee,
+  IceCream,
+  ArrowUpRight,
+  Send,
+  Sparkles,
+  Plane,
+  GlassWater,
+  RotateCcw,
+  Leaf,
+  ListOrdered
+} from 'lucide-react';
+
+// --- CONFIGURACIÓN ---
+const apiKey = ""; 
+const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent";
+
+const CATEGORIES = ["Todos", "Italiana", "Asiática", "Española", "Griega", "Británica", "Alemana", "Postres"];
+
+// --- COMPONENTE CHIBI ICON ---
+const ChibiIcon = ({ children, colorClass = "bg-sky-100 text-sky-700" }) => (
+  <div className={`${colorClass} p-3 rounded-2xl inline-flex items-center justify-center transform hover:scale-110 transition-all cursor-pointer shadow-md border-2 border-white`}>
+    {children}
+  </div>
+);
+
+// --- DATOS DE RECETAS DETALLADOS ---
+const RECIPES_DATA = [
+  { 
+    id: 1, 
+    title: "Pasta al Pesto Genovese", 
+    category: "Italiana", 
+    image: "https://images.unsplash.com/photo-1473093226795-af9932fe5856?auto=format&fit=crop&w=800&q=80", 
+    time: "15 min", 
+    difficulty: "Fácil", 
+    calories: "420 kcal", 
+    origin: "Génova, Italia", 
+    ingredients: [
+      "320g de Pasta (Trofie o Trenette)",
+      "50g de Albahaca fresca",
+      "30g de Piñones tostados",
+      "60g de Queso Parmesano rallado",
+      "2 dientes de Ajo",
+      "100ml de Aceite de Oliva Virgen Extra",
+      "Una pizca de Sal gorda"
+    ],
+    steps: [
+      "Lava y seca cuidadosamente las hojas de albahaca.",
+      "Macha el ajo con la sal en un mortero (o procesador) hasta formar una pasta.",
+      "Añade los piñones y sigue triturando.",
+      "Incorpora la albahaca poco a poco con movimientos circulares.",
+      "Añade el queso y finalmente el aceite en hilo hasta que emulsione.",
+      "Cuece la pasta 'al dente' y mézclala con el pesto en frío añadiendo un poco de agua de cocción."
+    ],
+    description: "El aroma de la albahaca fresca machacada es la esencia de Liguria. Un plato rápido pero lleno de técnica tradicional." 
+  },
+  { 
+    id: 2, 
+    title: "Rigatoni Amatriciana", 
+    category: "Italiana", 
+    image: "https://images.unsplash.com/photo-1598866594230-a7c12756260f?auto=format&fit=crop&w=800&q=80", 
+    time: "25 min", 
+    difficulty: "Media", 
+    calories: "550 kcal", 
+    origin: "Italia", 
+    ingredients: [
+      "320g de Rigatoni",
+      "150g de Guanciale cortado en tiras",
+      "400g de Tomate pelado de calidad",
+      "60g de Queso Pecorino Romano",
+      "1 Chile seco (Peperoncino)",
+      "50ml de Vino blanco seco"
+    ],
+    steps: [
+      "Dora el guanciale en una sartén grande sin aceite extra hasta que esté crujiente.",
+      "Añade el peperoncino y desglasa con el vino blanco. Deja evaporar.",
+      "Retira el guanciale y reserva. Añade los tomates a la misma sartén y rompe con una cuchara.",
+      "Cocina la salsa a fuego lento durante 15 minutos.",
+      "Cuece los rigatoni y añádelos a la salsa con el guanciale reservado.",
+      "Apaga el fuego, añade el queso pecorino y mezcla enérgicamente."
+    ],
+    description: "Un plato rústico y potente originario de Amatrice. La clave está en el guanciale y el pecorino." 
+  },
+  { 
+    id: 4, 
+    title: "Bao Buns de Panceta", 
+    category: "Asiática", 
+    image: "https://images.unsplash.com/photo-1525755662778-989d0524087e?auto=format&fit=crop&w=800&q=80", 
+    time: "45 min", 
+    difficulty: "Media", 
+    calories: "350 kcal", 
+    origin: "China", 
+    ingredients: [
+      "4 Panes Bao (al vapor)",
+      "200g de Panceta de cerdo",
+      "50ml de Salsa Hoisin",
+      "20g de Cebolleta fresca",
+      "1 Pepino pequeño en láminas",
+      "Cacahuetes picados"
+    ],
+    steps: [
+      "Cocina la panceta al horno o a la plancha hasta que esté muy tierna y la piel crujiente.",
+      "Calienta los panes bao al vapor durante 3-5 minutos hasta que estén esponjosos.",
+      "Unta el interior del bao con una cucharada de salsa hoisin.",
+      "Coloca una pieza de panceta, unas láminas de pepino y la cebolleta picada.",
+      "Termina con un toque de cacahuete picado para dar textura."
+    ],
+    description: "Esponjosos bocadillos al vapor que se deshacen en la boca. Un hit del street food asiático." 
+  },
+  { 
+    id: 6, 
+    title: "Takoyaki", 
+    category: "Asiática", 
+    image: "https://images.unsplash.com/photo-1591122948501-72266b6186f8?auto=format&fit=crop&w=800&q=80", 
+    time: "30 min", 
+    difficulty: "Alta", 
+    calories: "300 kcal", 
+    origin: "Osaka, Japón", 
+    ingredients: [
+      "100g de Pulpo cocido y troceado",
+      "200g de Harina para Takoyaki (o trigo)",
+      "450ml de Caldo Dashi frío",
+      "2 Huevos",
+      "10g de Jengibre encurtido picado",
+      "Salsa Takoyaki y Mayonesa japonesa"
+    ],
+    steps: [
+      "Mezcla la harina, los huevos y el caldo dashi hasta tener una masa líquida y sin grumos.",
+      "Calienta el molde de Takoyaki y engrasa bien cada hueco.",
+      "Vierte la masa hasta llenar los huecos y añade un trozo de pulpo y jengibre en cada uno.",
+      "Cuando los bordes estén cocidos, gira las bolitas 90 grados con un palillo.",
+      "Sigue girando hasta formar esferas doradas y perfectas.",
+      "Sirve con salsa, mayonesa y copos de bonito seco (katsuobushi)."
+    ],
+    description: "Bolitas de pulpo crujientes por fuera y cremosas por dentro, el alma de los festivales de Osaka." 
+  },
+  { 
+    id: 8, 
+    title: "Huevos Rotos con Jamón", 
+    category: "Española", 
+    image: "https://images.unsplash.com/photo-1644783103289-1834220b3f5c?auto=format&fit=crop&w=800&q=80", 
+    time: "20 min", 
+    difficulty: "Fácil", 
+    calories: "600 kcal", 
+    origin: "España", 
+    ingredients: [
+      "3 Patatas grandes tipo agria",
+      "4 Huevos frescos de corral",
+      "100g de Jamón Ibérico de bellota",
+      "Aceite de Oliva Virgen Extra",
+      "Sal gorda"
+    ],
+    steps: [
+      "Pela y corta las patatas en bastones irregulares.",
+      "Fríe las patatas en abundante aceite a fuego medio para que se confiten y luego sube el fuego para dorarlas.",
+      "Escurre las patatas y ponlas en un plato con un poco de sal.",
+      "Fríe los huevos en el mismo aceite muy caliente para que salga 'puntilla' pero la yema quede líquida.",
+      "Coloca los huevos sobre las patatas y el jamón por encima.",
+      "Rompe los huevos con un cuchillo y tenedor justo antes de comer."
+    ],
+    description: "La yema líquida bañando las patatas fritas es un manjar universal. La calidad del jamón es clave." 
+  },
+  { 
+    id: 9, 
+    title: "Callos a la Madrileña", 
+    category: "Española", 
+    image: "https://images.unsplash.com/photo-1594041180293-f111d4e69d72?auto=format&fit=crop&w=800&q=80", 
+    time: "180 min", 
+    difficulty: "Alta", 
+    calories: "450 kcal", 
+    origin: "Madrid, España", 
+    ingredients: [
+      "500g de Callos de ternera limpios",
+      "150g de Morro de ternera",
+      "1 Chorizo asturiano",
+      "1 Morcilla de cebolla",
+      "100g de Jamón en tacos",
+      "1 cucharada de Pimentón de la Vera",
+      "Cebolla, Laurel y Guindilla"
+    ],
+    steps: [
+      "Lava bien los callos con agua y vinagre. Ponlos a cocer con cebolla, laurel y sal durante 2-3 horas hasta que estén tiernos.",
+      "En una cazuela aparte, haz un sofrito con cebolla picada, el jamón y el pimentón (cuidado que no se queme).",
+      "Añade los callos cocidos al sofrito con un poco de su caldo de cocción.",
+      "Incorpora el chorizo y la morcilla enteros. Cocina a fuego lento 30 minutos.",
+      "Saca el embutido, trocéalo y vuelve a añadirlo. Deja reposar (están mejor al día siguiente)."
+    ],
+    description: "Un guiso tradicional, meloso y con un toque picante inconfundible. Esencial para los días de frío." 
+  }
+];
+
+// --- DATOS DE VIAJES ---
+const BLOG_POSTS = [
+  {
+    id: "eu-explore",
+    city: "Europa: Corazón del Mundo",
+    title: "Explora la diversidad del Viejo Continente",
+    image: "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?auto=format&fit=crop&w=1200&q=80",
+    excerpt: "Desde los fiordos hasta las islas griegas, un viaje por la historia...",
+    content: "Europa es un mosaico de culturas vivas. Basado en las guías de la UE, este viaje se centra en la libertad de movimiento y la riqueza gastronómica.",
+    locations: [{ name: "Bruselas", tips: ["Gofres en Grand Place", "Barrio europeo"] }, { name: "Praga", tips: ["Puente Carlos", "Cerveza artesanal"] }],
+    mustEat: "Goulash, Moules-frites", worthIt: "Pase Interrail"
+  },
+  {
+    id: "italia-abreu",
+    city: "Italia: El Gran Tour",
+    title: "Arte, Historia y la Dolce Vita",
+    image: "https://images.unsplash.com/photo-1529260839382-3eff510bac1e?auto=format&fit=crop&w=1200&q=80",
+    excerpt: "Roma, Florencia y Venecia bajo la mirada de Abreu 2025...",
+    content: "Tal como indica la guía Abreu 2025-26, Italia sigue siendo el destino estrella. En Roma, el Coliseo te transporta al imperio.",
+    locations: [{ name: "Roma", tips: ["Fontana di Trevi", "Piazza Navona"] }, { name: "Florencia", tips: ["Uffizi", "Duomo"] }],
+    mustEat: "Bistecca alla Fiorentina, Gelato", worthIt: "Tour nocturno Coliseo"
+  }
+];
+
+const App = () => {
+  const [activeTab, setActiveTab] = useState('home');
+  const [selectedRecipe, setSelectedRecipe] = useState(null);
+  const [selectedTravel, setSelectedTravel] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('Todos');
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanResult, setScanResult] = useState(null);
+  
+  // Estados de Gemini API
+  const [geminiLoading, setGeminiLoading] = useState(false);
+  const [chefResponse, setChefResponse] = useState("");
+  const [itinerary, setItinerary] = useState("");
+  const [pairing, setPairing] = useState("");
+  const [chatInput, setChatInput] = useState("");
+  const [transformation, setTransformation] = useState(null);
+
+  const filteredRecipes = RECIPES_DATA.filter(recipe => {
+    const matchesSearch = recipe.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === 'Todos' || recipe.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  // --- HELPER GEMINI API ---
+  const callGemini = async (prompt, systemInstruction = "", isImage = false, imageData = null) => {
+    let retries = 0;
+    const maxRetries = 5;
+    
+    const payload = {
+      contents: [{
+        parts: isImage ? [
+          { text: prompt },
+          { inlineData: { mimeType: "image/jpeg", data: imageData.split(',')[1] } }
+        ] : [{ text: prompt }]
+      }],
+      systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined
+    };
+
+    while (retries <= maxRetries) {
+      try {
+        const response = await fetch(`${API_URL}?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error('API Error');
+        
+        const data = await response.json();
+        return data.candidates?.[0]?.content?.parts?.[0]?.text;
+      } catch (error) {
+        if (retries === maxRetries) throw error;
+        const delay = Math.pow(2, retries) * 1000;
+        await new Promise(resolve => setTimeout(resolve, delay));
+        retries++;
+      }
+    }
+  };
+
+  const handleChefChat = async () => {
+    if (!chatInput.trim()) return;
+    setGeminiLoading(true);
+    const system = "Eres el Chef Ainhoa, una chef joven de 18 años. Responde de forma juvenil y profesional.";
+    try {
+      const res = await callGemini(chatInput, system);
+      setChefResponse(res);
+      setChatInput("");
+    } catch (e) {
+      setChefResponse("¡Uy! Hubo un problema. Inténtalo de nuevo.");
+    } finally {
+      setGeminiLoading(false);
+    }
+  };
+
+  const generateItinerary = async (country) => {
+    setGeminiLoading(true);
+    const prompt = `Crea un itinerario gourmet de 3 días para ${country}. Responde en español con formato Markdown.`;
+    try {
+      const res = await callGemini(prompt, "Eres un experto en viajes.");
+      setItinerary(res);
+      setActiveTab('itinerary');
+    } catch (e) {
+      alert("Error al preparar el viaje.");
+    } finally {
+      setGeminiLoading(false);
+    }
+  };
+
+  const getPairing = async (dishName) => {
+    setGeminiLoading(true);
+    const prompt = `Maridaje ideal para: ${dishName}. Responde brevemente.`;
+    try {
+      const res = await callGemini(prompt, "Eres un sommelier experto.");
+      setPairing(res);
+    } catch (e) {
+      setPairing("No pude encontrar el maridaje.");
+    } finally {
+      setGeminiLoading(false);
+    }
+  };
+
+  const transformRecipe = async (type) => {
+    if (!selectedRecipe) return;
+    setGeminiLoading(true);
+    const prompt = `Adapta esta receta a ${type}: ${selectedRecipe.title}. Ingredientes: ${selectedRecipe.ingredients.join(', ')}`;
+    try {
+      const res = await callGemini(prompt, "Experto nutricionista.");
+      setTransformation({ type, content: res });
+    } catch (e) {
+      alert("Error al transformar.");
+    } finally {
+      setGeminiLoading(false);
+    }
+  };
+
+  const analyzeImage = async (base64Image) => {
+    setIsScanning(true);
+    const system = "Devuelve JSON: {name, calories, protein, carbs, fats, tip}.";
+    try {
+      const res = await callGemini("Identifica este plato.", system, true, base64Image);
+      setScanResult(JSON.parse(res.replace(/```json|```/g, "")));
+    } catch (e) {
+      alert("Error de escaneo.");
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const renderContent = () => {
+    if (activeTab === 'itinerary') {
+        return (
+          <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20 px-4">
+            <button onClick={() => setActiveTab('blog')} className="flex items-center gap-2 text-slate-800 font-black hover:text-sky-600 transition-colors uppercase text-xs tracking-widest">
+              <ArrowLeft size={16} /> Volver a Guías
+            </button>
+            <div className="bg-white p-10 md:p-14 rounded-[4rem] shadow-xl border-2 border-sky-50">
+                <h2 className="text-4xl font-serif font-black text-sky-600 mb-6 flex items-center gap-3">
+                    <Sparkles className="text-sky-400" /> Plan Gourmet
+                </h2>
+                <div className="prose prose-sky max-w-none text-slate-700 whitespace-pre-wrap font-medium">
+                    {itinerary}
+                </div>
+            </div>
+          </div>
+        );
+    }
+
+    if (selectedTravel) {
+      return (
+        <div className="max-w-4xl mx-auto space-y-10 animate-in fade-in duration-500 pb-20 px-4">
+          <button onClick={() => setSelectedTravel(null)} className="flex items-center gap-2 text-slate-800 font-black hover:text-sky-600 transition-colors uppercase text-xs tracking-widest">
+            <ArrowLeft size={16} /> Volver al Blog
+          </button>
+          <div className="relative h-[450px] rounded-[3rem] overflow-hidden shadow-2xl border-4 border-white">
+            <img src={selectedTravel.image} className="w-full h-full object-cover" alt={selectedTravel.city} />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+            <div className="absolute bottom-10 left-10 text-white">
+              <h1 className="text-5xl font-serif font-black">{selectedTravel.city}</h1>
+            </div>
+          </div>
+          <div className="bg-white p-10 rounded-[4rem] shadow-xl space-y-10 border-2 border-sky-50">
+            <div className="space-y-6">
+              <h2 className="text-3xl font-serif font-black text-slate-800">Mi Guía Europa 2025</h2>
+              <p className="text-slate-600 text-xl leading-relaxed font-medium italic">"{selectedTravel.content}"</p>
+              <button 
+                onClick={() => generateItinerary(selectedTravel.city)}
+                disabled={geminiLoading}
+                className="bg-sky-500 text-white px-8 py-4 rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-sky-600 transition-all flex items-center gap-3 shadow-lg shadow-sky-100 disabled:opacity-50"
+              >
+                {geminiLoading ? '...' : <Sparkles size={18} />} ✨ Generar Itinerario
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    switch (activeTab) {
+      case 'home':
+        return (
+          <div className="space-y-16 animate-in fade-in duration-700 px-4">
+            <div className="relative h-[650px] rounded-[4rem] overflow-hidden shadow-2xl border-[12px] border-white group">
+              <img src="https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1200&q=80" className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-1000" alt="Paisaje Europeo" />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 to-transparent flex flex-col justify-end p-16">
+                <div className="bg-white/95 backdrop-blur-xl p-12 rounded-[4rem] w-fit shadow-2xl">
+                  <h1 className="text-6xl md:text-7xl font-serif font-black text-sky-600 mb-2 tracking-tighter">Cocinología</h1>
+                  <p className="text-slate-800 text-3xl font-black italic">Recorriendo la comida</p>
+                </div>
+              </div>
+            </div>
+
+            <section className="bg-white rounded-[4rem] p-12 shadow-2xl shadow-sky-100 border-4 border-sky-50 flex flex-col md:flex-row items-center gap-14">
+              <div className="relative shrink-0">
+                <div className="w-64 h-64 rounded-[4rem] bg-sky-200 overflow-hidden shadow-inner border-8 border-white rotate-3">
+                  <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=500&h=500&q=80" alt="Ainhoa Perfil" className="w-full h-full object-cover" />
+                </div>
+              </div>
+              <div className="space-y-8 text-center md:text-left">
+                <h2 className="text-5xl font-serif font-black text-slate-800 leading-tight">Hola, soy Ainhoa</h2>
+                <p className="text-slate-600 leading-relaxed text-2xl max-w-2xl font-bold">
+                  Soy una apasionada de los viajes y la buena mesa. Aquí tienes mi rincón de **Cocinología**.
+                </p>
+                <div className="bg-sky-50 p-8 rounded-[3rem] border-2 border-sky-100 space-y-6 max-w-xl">
+                    <p className="text-sky-700 font-black text-sm uppercase flex items-center gap-2">
+                        <Sparkles size={20} className="text-sky-400" /> Pregúntale a Chef Ainhoa
+                    </p>
+                    <div className="flex gap-3">
+                        <input type="text" className="flex-1 bg-white px-6 py-3 rounded-2xl border border-sky-100 outline-none text-slate-800 font-bold" placeholder="¿Cómo sustituyo el guanciale?" value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleChefChat()} />
+                        <button onClick={handleChefChat} disabled={geminiLoading} className="bg-sky-500 text-white p-4 rounded-2xl hover:bg-sky-600 transition-all shadow-lg shadow-sky-200"><Send size={20} /></button>
+                    </div>
+                    {chefResponse && <div className="bg-white p-6 rounded-3xl text-slate-800 font-medium italic shadow-sm">{String(chefResponse)}</div>}
+                </div>
+              </div>
+            </section>
+          </div>
+        );
+
+      case 'recipes':
+        return (
+          <div className="space-y-12 animate-in slide-in-from-bottom-12 duration-700 px-4">
+            <div className="text-center space-y-6">
+              <h2 className="text-6xl font-serif font-black text-slate-800">Recetario 📖</h2>
+              <div className="relative max-w-2xl mx-auto">
+                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-sky-400" size={24} />
+                <input type="text" placeholder="¿Qué cocinamos hoy?..." className="w-full pl-16 pr-8 py-7 bg-white border-4 border-sky-50 rounded-[3rem] focus:border-sky-300 outline-none transition-all shadow-xl text-xl text-slate-800 font-bold placeholder:text-slate-300" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+              </div>
+            </div>
+            <div className="flex gap-4 overflow-x-auto pb-6 scrollbar-hide px-4">
+              {CATEGORIES.map(cat => (
+                <button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-12 py-5 rounded-[2.5rem] font-black uppercase text-xs transition-all tracking-widest ${selectedCategory === cat ? 'bg-sky-500 text-white shadow-xl shadow-sky-100 scale-105' : 'bg-white text-slate-400 border-2 border-sky-50 hover:bg-sky-50'}`}>{cat}</button>
+              ))}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+              {filteredRecipes.map(recipe => (
+                <div key={recipe.id} onClick={() => { setSelectedRecipe(recipe); setTransformation(null); setPairing(""); }} className="bg-white rounded-[4rem] overflow-hidden shadow-lg hover:shadow-2xl transition-all cursor-pointer border-4 border-sky-50 group">
+                  <div className="h-72 overflow-hidden bg-sky-50 relative">
+                    {recipe.image && <img src={recipe.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={recipe.title} />}
+                  </div>
+                  <div className="p-10">
+                    <span className="text-sky-400 font-black text-[10px] uppercase tracking-[0.3em] mb-3 block">{recipe.category}</span>
+                    <h3 className="text-3xl font-serif font-black text-slate-800 mb-6 leading-tight">{recipe.title}</h3>
+                    <div className="flex justify-between items-center text-sky-600 font-black text-xs pt-6 border-t border-sky-50">
+                      <span className="flex items-center gap-2 bg-sky-50 px-4 py-2 rounded-2xl"><Clock size={16}/> {recipe.time}</span>
+                      <span className="bg-sky-50 px-4 py-2 rounded-2xl">{recipe.calories}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'scan':
+        return (
+          <div className="max-w-4xl mx-auto space-y-12 animate-in zoom-in-95 duration-500 px-4">
+            <div className="bg-white p-16 rounded-[5rem] shadow-2xl border-[16px] border-sky-50 text-center space-y-12">
+              <div className="space-y-4">
+                <ChibiIcon><CameraIcon size={48}/></ChibiIcon>
+                <h2 className="text-6xl font-serif font-black text-slate-800">Scan & Eat IA</h2>
+              </div>
+              {!isScanning && !scanResult && (
+                <div onClick={() => document.getElementById('fileInput').click()} className="border-8 border-dashed border-sky-100 rounded-[4rem] p-24 hover:bg-sky-50 transition-all cursor-pointer group relative overflow-hidden">
+                  <Camera className="mx-auto text-sky-200 group-hover:text-sky-500 mb-8" size={100} />
+                  <p className="font-black text-sky-500 uppercase tracking-[0.4em] text-sm">✨ Escanear Plato</p>
+                  <input id="fileInput" type="file" accept="image/*" className="hidden" onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => analyzeImage(reader.result);
+                      reader.readAsDataURL(file);
+                    }
+                  }} />
+                </div>
+              )}
+              {isScanning && <div className="py-24 space-y-10"><ChefHat className="mx-auto text-sky-500 animate-bounce" size={100} /></div>}
+              {scanResult && (
+                <div className="text-left space-y-10">
+                  <h3 className="text-5xl font-serif font-black text-slate-800">{String(scanResult.name)}</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    {[
+                      { l: 'Calorías', v: scanResult.calories, c: 'bg-sky-50 text-sky-800' }, 
+                      { l: 'Proteína', v: scanResult.protein, c: 'bg-blue-50 text-blue-800' }, 
+                      { l: 'Carbs', v: scanResult.carbs, c: 'bg-indigo-50 text-indigo-800' }, 
+                      { l: 'Grasas', v: scanResult.fats, c: 'bg-cyan-50 text-cyan-800' }
+                    ].map((item, i) => (
+                      <div key={i} className={`${item.c} p-8 rounded-[3rem] text-center border-4 border-white`}>
+                        <p className="text-[10px] font-black uppercase mb-3 opacity-60">{item.l}</p>
+                        <p className="text-3xl font-serif font-black">{String(item.v)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
+      case 'blog':
+        return (
+          <div className="max-w-6xl mx-auto space-y-24 animate-in fade-in duration-700 px-4">
+            <div className="text-center space-y-6">
+              <h2 className="text-7xl font-serif font-black text-slate-800 tracking-tighter">Guía Europa 2025 🌍</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
+              {BLOG_POSTS.map(post => (
+                <article key={post.id} onClick={() => setSelectedTravel(post)} className="bg-white rounded-[5rem] overflow-hidden shadow-2xl border-8 border-white group cursor-pointer hover:-translate-y-6 transition-all">
+                  <div className="h-[450px] overflow-hidden relative">
+                    <img src={post.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2.5s]" alt={post.city} />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
+                    <div className="absolute bottom-10 left-10 text-white">
+                      <p className="text-xs font-black uppercase tracking-[0.4em] mb-2 opacity-80">📍 {post.city}</p>
+                      <h3 className="text-4xl font-serif font-black leading-tight">{post.title}</h3>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-800 font-sans pb-48">
+      <nav className="sticky top-0 z-40 bg-white/95 backdrop-blur-2xl border-b-[10px] border-sky-50 px-6 md:px-12 py-8">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-5 cursor-pointer group" onClick={() => { setActiveTab('home'); setSelectedTravel(null); }}>
+            <div className="bg-sky-500 p-4 rounded-[1.8rem] text-white shadow-2xl shadow-sky-100 group-hover:rotate-12 transition-all"><ChefHat size={40} /></div>
+            <span className="text-3xl md:text-5xl font-serif font-black tracking-tighter text-sky-600 italic">Cocinología</span>
+          </div>
+          <div className="hidden lg:flex items-center gap-14">
+            {[{ id: 'home', l: 'Inicio' }, { id: 'recipes', l: 'Recetario' }, { id: 'scan', l: 'Scan IA' }, { id: 'blog', l: 'Guía Europa' }].map(tab => (
+              <button key={tab.id} onClick={() => { setActiveTab(tab.id); setSelectedTravel(null); }} className={`font-black uppercase tracking-[0.3em] text-[11px] transition-all relative py-3 ${activeTab === tab.id ? 'text-sky-600' : 'text-slate-300 hover:text-sky-400'}`}>{tab.l}{activeTab === tab.id && <div className="absolute -bottom-1 left-0 w-full h-2 bg-sky-500 rounded-full animate-in slide-in-from-left-4" />}</button>
+            ))}
+          </div>
+        </div>
+      </nav>
+
+      <main className="max-w-7xl mx-auto py-10 md:py-20">{renderContent()}</main>
+
+      {/* Navegación Móvil */}
+      <div className="lg:hidden fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] bg-white/95 backdrop-blur-3xl border-[8px] border-sky-50 rounded-[4rem] shadow-2xl z-50 px-10 py-6 flex justify-between items-center">
+        {[
+          { id: 'home', icon: <Compass size={28}/> }, 
+          { id: 'recipes', icon: <BookOpen size={28}/> }, 
+          { id: 'scan', icon: <CameraIcon size={28}/> }, 
+          { id: 'blog', icon: <Navigation size={28}/> }
+        ].map(item => (
+          <button key={item.id} onClick={() => { setActiveTab(item.id); setSelectedTravel(null); }} className={`transition-all duration-300 ${activeTab === item.id ? 'text-sky-500 scale-125' : 'text-black'}`}>{item.icon}</button>
+        ))}
+      </div>
+
+      {selectedRecipe && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8">
+          <div className="absolute inset-0 bg-slate-900/75 backdrop-blur-xl" onClick={() => setSelectedRecipe(null)} />
+          <div className="bg-white w-full max-w-7xl rounded-[4rem] md:rounded-[5rem] overflow-hidden shadow-2xl relative z-10 flex flex-col md:flex-row max-h-[95vh] border-[10px] md:border-[16px] border-white animate-in zoom-in-95 duration-300">
+            <button onClick={() => setSelectedRecipe(null)} className="absolute top-6 right-6 md:top-10 md:right-10 z-20 bg-slate-100 hover:bg-slate-200 text-slate-900 p-4 rounded-full transition-all shadow-md"><X size={28} /></button>
+            <div className="md:w-1/2 h-64 md:h-auto bg-sky-50 overflow-hidden relative">
+              {selectedRecipe.image && <img src={selectedRecipe.image} className="w-full h-full object-cover" alt={selectedRecipe.title} />}
+              <div className="absolute bottom-6 left-6 flex gap-2">
+                 <button onClick={() => transformRecipe('Vegana')} disabled={geminiLoading} className="bg-white/90 backdrop-blur px-4 py-2 rounded-xl text-green-600 font-black text-[10px] uppercase shadow-lg hover:bg-green-50 transition-all flex items-center gap-2">
+                    {geminiLoading ? '...' : <><Leaf size={14} /> Vegana</>}
+                 </button>
+                 <button onClick={() => transformRecipe('Saludable')} disabled={geminiLoading} className="bg-white/90 backdrop-blur px-4 py-2 rounded-xl text-sky-600 font-black text-[10px] uppercase shadow-lg hover:bg-sky-50 transition-all flex items-center gap-2">
+                    {geminiLoading ? '...' : <><Zap size={14} /> Saludable</>}
+                 </button>
+              </div>
+            </div>
+            <div className="md:w-1/2 p-10 md:p-20 overflow-y-auto space-y-10">
+              {transformation ? (
+                <div className="space-y-6 animate-in slide-in-from-right-4">
+                    <div className="flex justify-between items-center">
+                        <h3 className="text-3xl font-serif font-black text-sky-600">Versión {transformation.type}</h3>
+                        <button onClick={() => setTransformation(null)} className="text-slate-400 hover:text-slate-600"><RotateCcw size={20}/></button>
+                    </div>
+                    <div className="bg-sky-50 p-8 rounded-[2.5rem] border-2 border-sky-100 text-slate-700 font-medium leading-relaxed whitespace-pre-wrap">
+                        {transformation.content}
+                    </div>
+                </div>
+              ) : (
+                <>
+                    <div><span className="text-sky-400 text-xs font-black uppercase tracking-[0.5em] mb-4 block">Origen: {selectedRecipe.origin}</span><h2 className="text-5xl font-serif font-black text-slate-800 leading-tight">{selectedRecipe.title}</h2></div>
+                    
+                    <div className="space-y-6">
+                        <button 
+                            onClick={() => getPairing(selectedRecipe.title)}
+                            disabled={geminiLoading}
+                            className="w-full bg-sky-100 text-sky-800 py-4 rounded-3xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 border-2 border-sky-200 hover:bg-sky-200 transition-all disabled:opacity-50 shadow-sm"
+                        >
+                            {geminiLoading ? '...' : <><GlassWater size={18}/> Maridaje</>}
+                        </button>
+                        {pairing && (
+                            <div className="bg-white p-6 rounded-3xl border-4 border-sky-50 shadow-inner italic font-bold text-sky-900 leading-relaxed animate-in fade-in">
+                                "{pairing}"
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex gap-10 border-y-4 border-sky-50 py-8">
+                        {[{ l: 'Tiempo', v: selectedRecipe.time }, { l: 'Nivel', v: selectedRecipe.difficulty }, { l: 'Energía', v: selectedRecipe.calories }].map((stat, i) => (
+                        <div key={i}><p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">{stat.l}</p><p className="font-serif text-2xl text-sky-600 font-black">{stat.v}</p></div>
+                        ))}
+                    </div>
+                    <div className="space-y-8">
+                        <div><h4 className="text-2xl font-serif text-slate-800 mb-6 flex items-center gap-3"><ChibiIcon><Utensils size={20}/></ChibiIcon> Despensa</h4>
+                        <ul className="grid grid-cols-1 gap-4">{selectedRecipe.ingredients.map((ing, i) => (
+                            <li key={i} className="bg-sky-50/50 p-4 rounded-2xl text-slate-700 font-bold flex items-center gap-4 border border-sky-100"><div className="w-3 h-3 bg-sky-400 rounded-full" /> {ing}</li>
+                            ))}</ul>
+                        </div>
+                        <div><h4 className="text-2xl font-serif text-slate-800 mb-6 flex items-center gap-3"><ChibiIcon><ListOrdered size={20}/></ChibiIcon> Proceso</h4>
+                        <div className="space-y-6">{selectedRecipe.steps.map((step, i) => (
+                            <div key={i} className="flex gap-4">
+                              <span className="flex-shrink-0 w-8 h-8 rounded-full bg-sky-600 text-white flex items-center justify-center font-black text-sm">{i+1}</span>
+                              <p className="text-slate-600 font-medium leading-relaxed pt-1">{step}</p>
+                            </div>
+                        ))}</div>
+                        </div>
+                    </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <footer className="max-w-7xl mx-auto px-12 mt-40 text-center space-y-16 pb-32">
+        <div className="flex justify-center items-center gap-8"><div className="h-1.5 w-32 bg-sky-100 rounded-full" /><ChibiIcon colorClass="bg-sky-500 text-white shadow-2xl scale-150"><ChefHat size={32} /></ChibiIcon><div className="h-1.5 w-32 bg-sky-100 rounded-full" /></div>
+        <div className="space-y-6"><h3 className="text-6xl font-serif font-black italic text-sky-600 tracking-tighter">Cocinología</h3><p className="text-slate-400 font-black uppercase tracking-[0.5em] text-xs">Ainhoa • 2026</p></div>
+        <p className="text-slate-300 text-[10px] font-black tracking-[0.6em] uppercase">© Cocinología - Potenciado por ✨ Gemini 2.5 AI</p>
+      </footer>
+    </div>
+  );
+};
+
+export default App;
